@@ -1,5 +1,5 @@
 const MODULE = 'scene-omens';
-const VERSION = '0.2.2';
+const VERSION = '0.2.3';
 const PROMPT_KEY = 'scene_omens_active_fate';
 const DEFAULTS = { enabled: true, skin: 'mystic', allowSkip: true };
 let activeOmen = null;
@@ -34,7 +34,7 @@ function artFor(v){ return new URL(`assets/cards/${arts[hash(v)%arts.length]}`, 
 function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
 function dismissRoot(root){
   if(!root) return;
-  if(root.id==='so-test-host'){ root.closest('.so-test-shell')?.remove(); root.remove(); return; }
+  if(root.id==='so-test-host'){ const shell=root.closest('.so-test-shell'); try{ shell?.close?.(); }catch{} shell?.remove(); return; }
   root.classList.add('so-complete');
   setTimeout(()=>{ root.style.display='none'; },420);
 }
@@ -45,11 +45,14 @@ function reveal(value, card, root){
   card.classList.add('so-picked');
   const isTest = root?.id === 'so-test-host';
   if(!isTest){ activeOmen={value,at:Date.now()}; saveState(); }
-  const overlay=document.createElement('div'); overlay.className='so-overlay';
+  const overlay=document.createElement('dialog'); overlay.className='so-overlay';
   overlay.innerHTML=`<div class="so-reveal"><img src="${artFor(value)}" alt=""><div class="so-glass"><div class="so-title">${escapeHtml(value)}</div><div class="so-sub">Знамение выбрано</div></div><div class="so-tap">коснись карты, чтобы продолжить</div></div>`;
-  document.body.appendChild(overlay); requestAnimationFrame(()=>overlay.classList.add('show'));
-  const closeReveal=()=>{ overlay.classList.remove('show'); overlay.style.pointerEvents='none'; setTimeout(()=>overlay.remove(),360); dismissRoot(root); };
+  document.documentElement.appendChild(overlay);
+  try{ overlay.showModal(); }catch{ overlay.setAttribute('open',''); }
+  requestAnimationFrame(()=>overlay.classList.add('show'));
+  const closeReveal=()=>{ overlay.classList.remove('show'); overlay.style.pointerEvents='none'; setTimeout(()=>{ try{overlay.close?.();}catch{} overlay.remove(); },260); dismissRoot(root); };
   overlay.addEventListener('click',closeReveal,{once:true});
+  overlay.addEventListener('cancel',(e)=>{e.preventDefault();closeReveal();},{once:true});
 }
 function decorate(root){
   if(root.dataset.soReady==='1') return;
@@ -68,12 +71,14 @@ function applyEnabledState(){ document.documentElement.classList.toggle('scene-o
 function observe(){ bind(); observer=new MutationObserver(()=>bind()); observer.observe(document.body,{childList:true,subtree:true}); }
 function testCards(){
   if(!settings().enabled){ store({enabled:true}); const cb=document.getElementById('so-enabled'); if(cb)cb.checked=true; }
-  document.getElementById('so-test-host')?.remove();
-  const shell=document.createElement('div'); shell.id='so-test-shell'; shell.className='so-test-shell';
+  document.getElementById('so-test-shell')?.remove();
+  const shell=document.createElement('dialog'); shell.id='so-test-shell'; shell.className='so-test-shell';
   const host=document.createElement('div'); host.id='so-test-host'; host.className='scene-omens so-test-host';
   host.innerHTML=`<div class="so-head">✦ З Н А М Е Н И Я &nbsp; С Ц Е Н Ы ✦</div><div class="so-hint">технический тест — выбери или пропусти</div><div class="so-row"><div class="so-card" data-omen="РЕВНОСТЬ"></div><div class="so-card" data-omen="ТАЙНА"></div><div class="so-card" data-omen="ИСКУШЕНИЕ"></div></div>`;
-  shell.appendChild(host); document.body.appendChild(shell); decorate(host); requestAnimationFrame(()=>shell.classList.add('so-test-visible'));
-  shell.addEventListener('click',(e)=>{ if(e.target===shell){ shell.remove(); } });
+  shell.appendChild(host); document.documentElement.appendChild(shell); decorate(host); try{shell.showModal();}catch{shell.setAttribute('open','');} requestAnimationFrame(()=>shell.classList.add('so-test-visible'));
+  const closeTest=()=>{ try{shell.close?.();}catch{} shell.remove(); };
+  shell.addEventListener('click',(e)=>{ if(e.target===shell) closeTest(); });
+  shell.addEventListener('cancel',(e)=>{e.preventDefault();closeTest();});
 }
 function refreshPanel(){
   const s=settings(); const cb=document.getElementById('so-enabled'); if(cb)cb.checked=!!s.enabled;

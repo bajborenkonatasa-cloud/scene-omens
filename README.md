@@ -11,3 +11,7 @@ Expected rendered markup: `.scene-omens` with three `.so-card` elements carrying
 
 ## 0.2.2
 Mobile modal centering fix; test overlay is isolated and fully removed on skip/close; test choices no longer overwrite the active story omen.
+
+
+### 0.2.3
+Android/WebView top-layer fix: test chooser and reveal now use native modal dialogs, so RP Glass/SillyTavern transforms cannot pin them to the top or leave invisible click-blocking layers.

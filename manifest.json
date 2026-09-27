@@ -6,7 +6,7 @@
   "js": "index.js",
   "css": "style.css",
   "author": "bajborenkonatasa-cloud",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "homePage": "https://github.com/bajborenkonatasa-cloud/scene-omens",
   "auto_update": false,
   "minimum_client_version": "1.19.0"
