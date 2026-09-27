@@ -1,5 +1,5 @@
 const MODULE = 'scene-omens';
-const VERSION = '0.2.0';
+const VERSION = '0.2.1';
 const PROMPT_KEY = 'scene_omens_active_fate';
 const DEFAULTS = { enabled: true, skin: 'mystic', allowSkip: true };
 let activeOmen = null;
