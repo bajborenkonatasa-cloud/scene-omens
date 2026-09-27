@@ -1,5 +1,5 @@
 const MODULE = 'scene-omens';
-const VERSION = '0.2.1';
+const VERSION = '0.2.2';
 const PROMPT_KEY = 'scene_omens_active_fate';
 const DEFAULTS = { enabled: true, skin: 'mystic', allowSkip: true };
 let activeOmen = null;
@@ -32,17 +32,24 @@ function hash(s){ let h=2166136261; for(const ch of s){h^=ch.charCodeAt(0); h=Ma
 const arts=['gold.png','moon.png','forest.png'];
 function artFor(v){ return new URL(`assets/cards/${arts[hash(v)%arts.length]}`, import.meta.url).href; }
 function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
-function dismissRoot(root){ root.classList.add('so-complete'); setTimeout(()=>root.style.display='none',420); }
+function dismissRoot(root){
+  if(!root) return;
+  if(root.id==='so-test-host'){ root.closest('.so-test-shell')?.remove(); root.remove(); return; }
+  root.classList.add('so-complete');
+  setTimeout(()=>{ root.style.display='none'; },420);
+}
 function reveal(value, card, root){
   if(!settings().enabled || root.dataset.chosen==='1') return;
   root.dataset.chosen='1';
   root.querySelectorAll('.so-card').forEach(c=>{ if(c!==card)c.classList.add('so-faded'); });
   card.classList.add('so-picked');
-  activeOmen={value,at:Date.now()}; saveState();
+  const isTest = root?.id === 'so-test-host';
+  if(!isTest){ activeOmen={value,at:Date.now()}; saveState(); }
   const overlay=document.createElement('div'); overlay.className='so-overlay';
   overlay.innerHTML=`<div class="so-reveal"><img src="${artFor(value)}" alt=""><div class="so-glass"><div class="so-title">${escapeHtml(value)}</div><div class="so-sub">Знамение выбрано</div></div><div class="so-tap">коснись карты, чтобы продолжить</div></div>`;
   document.body.appendChild(overlay); requestAnimationFrame(()=>overlay.classList.add('show'));
-  overlay.addEventListener('click',()=>{ overlay.classList.remove('show'); setTimeout(()=>overlay.remove(),360); dismissRoot(root); },{once:true});
+  const closeReveal=()=>{ overlay.classList.remove('show'); overlay.style.pointerEvents='none'; setTimeout(()=>overlay.remove(),360); dismissRoot(root); };
+  overlay.addEventListener('click',closeReveal,{once:true});
 }
 function decorate(root){
   if(root.dataset.soReady==='1') return;
@@ -62,9 +69,11 @@ function observe(){ bind(); observer=new MutationObserver(()=>bind()); observer.
 function testCards(){
   if(!settings().enabled){ store({enabled:true}); const cb=document.getElementById('so-enabled'); if(cb)cb.checked=true; }
   document.getElementById('so-test-host')?.remove();
+  const shell=document.createElement('div'); shell.id='so-test-shell'; shell.className='so-test-shell';
   const host=document.createElement('div'); host.id='so-test-host'; host.className='scene-omens so-test-host';
   host.innerHTML=`<div class="so-head">✦ З Н А М Е Н И Я &nbsp; С Ц Е Н Ы ✦</div><div class="so-hint">технический тест — выбери или пропусти</div><div class="so-row"><div class="so-card" data-omen="РЕВНОСТЬ"></div><div class="so-card" data-omen="ТАЙНА"></div><div class="so-card" data-omen="ИСКУШЕНИЕ"></div></div>`;
-  document.body.appendChild(host); decorate(host); requestAnimationFrame(()=>host.classList.add('so-test-visible'));
+  shell.appendChild(host); document.body.appendChild(shell); decorate(host); requestAnimationFrame(()=>shell.classList.add('so-test-visible'));
+  shell.addEventListener('click',(e)=>{ if(e.target===shell){ shell.remove(); } });
 }
 function refreshPanel(){
   const s=settings(); const cb=document.getElementById('so-enabled'); if(cb)cb.checked=!!s.enabled;
