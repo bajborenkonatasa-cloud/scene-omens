@@ -1,4 +1,7 @@
 # Scene Omens — Fate Engine
-Independent SillyTavern extension. Three hidden cards -> choose one -> fullscreen reveal -> chosen omen is kept as an active prompt thread for the current chat.
 
-Regex markup expected in rendered assistant messages: `.scene-omens` containing three `.so-card` nodes with `data-omen` values.
+Independent SillyTavern roleplay extension.
+
+v0.2.0: settings panel, master enable/disable switch, optional skip, active omen status/reset, built-in card test, fullscreen reveal, per-chat active fate prompt bridge.
+
+Expected rendered markup: `.scene-omens` with three `.so-card` elements carrying `data-omen` values.
