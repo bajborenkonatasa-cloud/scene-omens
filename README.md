@@ -1,17 +1,25 @@
 # Scene Omens — Fate Engine
 
-Independent SillyTavern roleplay extension.
+Independent SillyTavern roleplay story director.
 
-v0.2.1: mobile viewport centering, safer phone sizing, lighter reveal glass.
+## v0.3.0 — Director Brain
+- Context-aware omens for the whole world: char, user-facing circumstances, family, children, parents, siblings, established NPCs, institutions and world events.
+- User character agency is protected: the engine never decides the user's thoughts, feelings, dialogue or actions.
+- Three spoiler-light visible choices each carry a hidden concrete director thread. Only the chosen thread becomes canonical.
+- Unchosen threads are explicitly discarded.
+- Active threads are allowed to emerge later and adapt to intervening events.
+- Frequency and maximum intensity controls.
+- Skip remains fully non-canonical.
 
-v0.2.0: settings panel, master enable/disable switch, optional skip, active omen status/reset, built-in card test, fullscreen reveal, per-chat active fate prompt bridge.
+## Required Regex
+Search regex:
+```
+\[OMEN\|([^|~\]]+)~([^|~\]]+)~([^|\]]+)\|([^|~\]]+)~([^|~\]]+)~([^|\]]+)\|([^|~\]]+)~([^|~\]]+)~([^|\]]+)\]
+```
 
-Expected rendered markup: `.scene-omens` with three `.so-card` elements carrying `data-omen` values.
+Replace with:
+```html
+<div class="scene-omens"><div class="so-head">✦ З Н А М Е Н И Я &nbsp; С Ц Е Н Ы ✦</div><div class="so-hint">между строками — выбери или пропусти</div><div class="so-row"><div class="so-card" data-omen="$1"><span class="so-omen-title">$1</span><span class="so-omen-hint">$2</span><span class="so-omen-thread">$3</span></div><div class="so-card" data-omen="$4"><span class="so-omen-title">$4</span><span class="so-omen-hint">$5</span><span class="so-omen-thread">$6</span></div><div class="so-card" data-omen="$7"><span class="so-omen-title">$7</span><span class="so-omen-hint">$8</span><span class="so-omen-thread">$9</span></div></div></div>
+```
 
-
-## 0.2.2
-Mobile modal centering fix; test overlay is isolated and fully removed on skip/close; test choices no longer overwrite the active story omen.
-
-
-### 0.2.3
-Android/WebView top-layer fix: test chooser and reveal now use native modal dialogs, so RP Glass/SillyTavern transforms cannot pin them to the top or leave invisible click-blocking layers.
+The Director Brain prompt is injected by the extension while enabled, so the old standalone `[SCENE OMENS]` preset is no longer required. Keep the Regex enabled so the model tag becomes the card UI.

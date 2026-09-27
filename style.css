@@ -30,3 +30,7 @@ dialog.so-test-shell[open]{display:flex!important}
 dialog.so-test-shell .so-test-host{position:static!important; transform:none!important; margin:auto!important; width:min(92vw,520px)!important; max-height:min(76dvh,620px)!important; overflow:auto!important;}
 dialog.so-overlay .so-reveal{position:relative!important;margin:auto!important;width:min(82vw,calc((100dvh - 96px)*.6667),430px)!important;height:auto!important;max-height:calc(100dvh - 96px)!important;aspect-ratio:2/3!important;inset:auto!important;}
 @media(max-width:520px){dialog.so-overlay .so-reveal{width:min(84vw,calc((100dvh - 104px)*.6667))!important;max-height:calc(100dvh - 104px)!important}}
+
+/* v0.3.0 Director Brain payload is intentionally invisible on card backs. */
+.so-omen-title,.so-omen-hint,.so-omen-thread{display:none!important}
+#so-settings label>select{width:100%;margin-top:5px}
