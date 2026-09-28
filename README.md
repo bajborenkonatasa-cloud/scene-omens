@@ -23,3 +23,7 @@ Replace with:
 ```
 
 The Director Brain prompt is injected by the extension while enabled, so the old standalone `[SCENE OMENS]` preset is no longer required. Keep the Regex enabled so the model tag becomes the card UI.
+
+
+## v0.3.1
+Compact drawer-based settings UI. Fate Engine logic and card/modal geometry are unchanged.

@@ -1,5 +1,5 @@
 const MODULE = 'scene-omens';
-const VERSION = '0.3.0';
+const VERSION = '0.3.1';
 const PROMPT_KEY = 'scene_omens_active_fate';
 const DEFAULTS = { enabled: true, skin: 'mystic', allowSkip: true, frequency: 'normal', intensity: 'turn' };
 let activeOmen = null;
@@ -95,13 +95,51 @@ function refreshPanel(){
   const fq=document.getElementById('so-frequency'); if(fq)fq.value=s.frequency||'normal';
   const it=document.getElementById('so-intensity'); if(it)it.value=s.intensity||'turn';
   const st=document.getElementById('so-status'); if(st)st.textContent=s.enabled?'Включено':'Выключено';
-  const ac=document.getElementById('so-active'); if(ac)ac.textContent=activeOmen?.title || activeOmen?.value || '—';
+  const activeText=activeOmen?.title || activeOmen?.value || '—';
+  const ac=document.getElementById('so-active'); if(ac)ac.textContent=activeText;
+  const ac2=document.getElementById('so-active-copy'); if(ac2)ac2.textContent=activeText;
 }
 function mountSettings(){
   if(document.getElementById('so-settings')) return;
   const parent=document.getElementById('extensions_settings2') || document.getElementById('extensions_settings'); if(!parent) return;
   const section=document.createElement('details'); section.id='so-settings';
-  section.innerHTML=`<summary>🔮 Scene Omens <small>· ${VERSION}</small></summary><div class="so-settings-body"><div class="so-setting-line"><strong>Fate Engine</strong><span id="so-status"></span></div><label class="so-switch-line"><input id="so-enabled" type="checkbox"> Включить знамения в ролевой</label><label class="so-switch-line"><input id="so-skip-toggle" type="checkbox"> Разрешить «Пропустить знамение»</label><label>Стиль<select id="so-skin"><option value="mystic">Modern Mystic</option></select></label><label>Частота вмешательства<select id="so-frequency"><option value="rare">Редко</option><option value="normal">Умеренно</option><option value="often">Чаще</option></select></label><label>Максимальная сила поворота<select id="so-intensity"><option value="ripple">Ripple · лёгкие толчки</option><option value="turn">Turn · заметные повороты</option><option value="shift">Shift · серьёзные сдвиги</option></select></label><div class="so-active-box">Активная нить: <strong id="so-active">—</strong></div><div class="so-settings-actions"><button type="button" id="so-test">🃏 Тест карт</button><button type="button" id="so-reset">Сбросить нить</button></div><p class="so-settings-note">Выбор не обязателен. Director Brain двигает не только чара: он может использовать семью, детей, родителей, братьев/сестёр, других NPC и мир — только из логики текущего канона. Пропуск ничего не активирует.</p></div>`;
+  section.innerHTML=`<summary>🔮 Scene Omens <small>· ${VERSION}</small></summary>
+  <div class="so-settings-body so-compact">
+    <div class="so-statusbar"><strong>Fate Engine</strong><span id="so-status"></span><span class="so-active-chip">Нить: <b id="so-active">—</b></span></div>
+
+    <label class="so-switch-line so-master"><input id="so-enabled" type="checkbox"><b>Scene Omens включён</b></label>
+
+    <details class="so-drawer" open>
+      <summary>🎭 Поведение <span>частота · сила</span></summary>
+      <div class="so-drawer-body">
+        <div class="so-control-row"><label for="so-frequency">Частота</label><select id="so-frequency"><option value="rare">Редко</option><option value="normal">Умеренно</option><option value="often">Чаще</option></select><button class="so-info" type="button" data-help="so-help-frequency">ⓘ</button></div>
+        <div id="so-help-frequency" class="so-help" hidden><b>Редко</b> — только после явной паузы. <b>Умеренно</b> — иногда, когда сцене полезен новый импульс. <b>Чаще</b> — смелее предлагает поворот, но не спамит.</div>
+
+        <div class="so-control-row"><label for="so-intensity">Сила</label><select id="so-intensity"><option value="ripple">Ripple · лёгкая</option><option value="turn">Turn · заметная</option><option value="shift">Shift · серьёзная</option></select><button class="so-info" type="button" data-help="so-help-intensity">ⓘ</button></div>
+        <div id="so-help-intensity" class="so-help" hidden><b>Ripple</b> — бытовой толчок. <b>Turn</b> — заметный сюжетный поворот. <b>Shift</b> — серьёзный сдвиг, только если канон его поддерживает.</div>
+
+        <label class="so-switch-line"><input id="so-skip-toggle" type="checkbox"> Разрешить «Пропустить знамение»</label>
+      </div>
+    </details>
+
+    <details class="so-drawer">
+      <summary>🎨 Вид карт <span>стиль · тест</span></summary>
+      <div class="so-drawer-body">
+        <div class="so-control-row so-no-info"><label for="so-skin">Стиль</label><select id="so-skin"><option value="mystic">Modern Mystic</option></select></div>
+        <button type="button" id="so-test">🃏 Тест карт</button>
+      </div>
+    </details>
+
+    <details class="so-drawer">
+      <summary>🧵 Активная нить <span>управление</span></summary>
+      <div class="so-drawer-body">
+        <div class="so-active-box">Сейчас: <strong id="so-active-copy">—</strong></div>
+        <button type="button" id="so-reset">Сбросить нить</button>
+        <button class="so-info so-wide-info" type="button" data-help="so-help-thread">ⓘ Как это работает?</button>
+        <div id="so-help-thread" class="so-help" hidden>Выбранная карта становится единственной активной сюжетной нитью. Director Brain может двигать NPC, семью, обстоятельства и мир из логики текущего канона, но не управляет решениями персонажа пользователя. Пропуск ничего не активирует.</div>
+      </div>
+    </details>
+  </div>`;
   parent.appendChild(section);
   section.querySelector('#so-enabled').addEventListener('change',e=>store({enabled:e.target.checked}));
   section.querySelector('#so-skip-toggle').addEventListener('change',e=>store({allowSkip:e.target.checked}));
@@ -109,6 +147,9 @@ function mountSettings(){
   section.querySelector('#so-intensity').addEventListener('change',e=>store({intensity:e.target.value}));
   section.querySelector('#so-test').addEventListener('click',testCards);
   section.querySelector('#so-reset').addEventListener('click',clearState);
+  section.querySelectorAll('.so-info').forEach(btn=>btn.addEventListener('click',()=>{
+    const h=document.getElementById(btn.dataset.help); if(!h)return; h.hidden=!h.hidden; btn.classList.toggle('is-open',!h.hidden);
+  }));
   refreshPanel();
 }
 function events(){ const c=ctx(), es=c.eventSource, E=c.event_types||c.eventTypes; if(!es||!E)return; if(E.CHAT_CHANGED)es.on(E.CHAT_CHANGED,()=>{loadState();setTimeout(bind,80)}); }

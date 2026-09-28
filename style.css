@@ -34,3 +34,29 @@ dialog.so-overlay .so-reveal{position:relative!important;margin:auto!important;w
 /* v0.3.0 Director Brain payload is intentionally invisible on card backs. */
 .so-omen-title,.so-omen-hint,.so-omen-thread{display:none!important}
 #so-settings label>select{width:100%;margin-top:5px}
+
+/* v0.3.1 compact settings drawers — card/modal geometry untouched */
+#so-settings .so-settings-body.so-compact{display:block;padding:8px 3px}
+#so-settings .so-statusbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:7px 9px;margin-bottom:7px;border:1px solid color-mix(in srgb,var(--SmartThemeBorderColor,#777) 40%,transparent);border-radius:10px;background:color-mix(in srgb,var(--SmartThemeBlurTintColor,#111) 90%,transparent);font-size:.82em}
+#so-settings .so-statusbar #so-status{margin-left:auto}
+#so-settings .so-active-chip{width:100%;opacity:.72;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#so-settings .so-master{margin:5px 5px 8px}
+#so-settings .so-drawer{margin:6px 0;border:1px solid color-mix(in srgb,var(--SmartThemeBorderColor,#777) 38%,transparent);border-radius:11px;background:rgba(15,12,24,.16);overflow:hidden}
+#so-settings .so-drawer>summary{list-style:none;display:flex;align-items:center;gap:6px;padding:9px 10px;cursor:pointer;font-weight:650}
+#so-settings .so-drawer>summary::-webkit-details-marker{display:none}
+#so-settings .so-drawer>summary span{font-size:.72em;font-weight:400;opacity:.45;white-space:nowrap}
+#so-settings .so-drawer>summary:after{content:'›';margin-left:auto;font-size:18px;opacity:.65;transform:rotate(90deg);transition:.15s}
+#so-settings .so-drawer:not([open])>summary:after{transform:rotate(0)}
+#so-settings .so-drawer-body{padding:5px 9px 9px;border-top:1px solid rgba(180,130,255,.10)}
+#so-settings .so-control-row{display:grid;grid-template-columns:72px minmax(0,1fr) 28px;gap:6px;align-items:center;margin:6px 0}
+#so-settings .so-control-row.so-no-info{grid-template-columns:72px minmax(0,1fr)}
+#so-settings .so-control-row label{margin:0;font-size:.82em}
+#so-settings .so-control-row select{width:100%!important;margin:0!important;min-height:34px!important;border-radius:9px!important}
+#so-settings .so-drawer button{min-height:34px!important;border-radius:9px!important}
+#so-settings .so-info{border:0!important;background:transparent!important;box-shadow:none!important;padding:0!important;min-width:26px!important;font-size:15px;opacity:.6}
+#so-settings .so-info.is-open{opacity:1}
+#so-settings .so-wide-info{width:auto!important;font-size:.75em!important;padding:3px 6px!important;margin-top:4px}
+#so-settings .so-help[hidden]{display:none!important}
+#so-settings .so-help{font-size:.72em;line-height:1.35;opacity:.72;padding:7px 8px;margin:2px 0 7px;border-radius:8px;background:rgba(145,80,210,.07);border:1px solid rgba(190,130,255,.12)}
+#so-settings .so-active-box{padding:7px 9px!important;margin:2px 0 6px;font-size:.82em}
+#so-settings #so-test,#so-settings #so-reset{width:100%}
