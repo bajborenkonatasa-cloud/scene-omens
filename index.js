@@ -1,5 +1,5 @@
 const MODULE = 'scene-omens';
-const VERSION = '0.3.1';
+const VERSION = '0.3.2';
 const PROMPT_KEY = 'scene_omens_active_fate';
 const DEFAULTS = { enabled: true, skin: 'mystic', allowSkip: true, frequency: 'normal', intensity: 'turn' };
 let activeOmen = null;
@@ -75,7 +75,40 @@ function decorate(root){
     root.appendChild(skip);
   }
 }
-function bind(){ document.querySelectorAll('.scene-omens').forEach(root=>{ if(settings().enabled) decorate(root); root.classList.toggle('so-disabled',!settings().enabled); }); }
+const OMEN_RE = /\[OMEN\|([^|~\]]+)~([^|~\]]+)~([^|\]]+)\|([^|~\]]+)~([^|~\]]+)~([^|\]]+)\|([^|~\]]+)~([^|~\]]+)~([^|\]]+)\]/g;
+function omenMarkup(m){
+  const v=m.slice(1,10).map(x=>String(x||'').trim());
+  const card=(i)=>`<div class="so-card" data-omen="${escapeHtml(v[i])}"><span class="so-omen-title">${escapeHtml(v[i])}</span><span class="so-omen-hint">${escapeHtml(v[i+1])}</span><span class="so-omen-thread">${escapeHtml(v[i+2])}</span></div>`;
+  return `<div class="scene-omens"><div class="so-head">✦ З Н А М Е Н И Я &nbsp; С Ц Е Н Ы ✦</div><div class="so-hint">между строками — выбери или пропусти</div><div class="so-row">${card(0)}${card(3)}${card(6)}</div></div>`;
+}
+function renderRawOmens(){
+  if(!settings().enabled) return;
+  document.querySelectorAll('.mes_text, .mes .mes_text').forEach(host=>{
+    if(host.dataset.soParsed==='1' || host.querySelector('.scene-omens')) return;
+    const raw=host.textContent || '';
+    OMEN_RE.lastIndex=0;
+    if(!OMEN_RE.test(raw)) return;
+    OMEN_RE.lastIndex=0;
+    const walker=document.createTreeWalker(host,NodeFilter.SHOW_TEXT);
+    const nodes=[]; while(walker.nextNode()) nodes.push(walker.currentNode);
+    let changed=false;
+    for(const node of nodes){
+      const text=node.nodeValue||''; OMEN_RE.lastIndex=0;
+      if(!OMEN_RE.test(text)) continue;
+      OMEN_RE.lastIndex=0;
+      const frag=document.createDocumentFragment(); let last=0, match;
+      while((match=OMEN_RE.exec(text))){
+        if(match.index>last) frag.append(document.createTextNode(text.slice(last,match.index)));
+        const box=document.createElement('div'); box.innerHTML=omenMarkup(match); frag.append(...box.childNodes);
+        last=match.index+match[0].length; changed=true;
+      }
+      if(last<text.length) frag.append(document.createTextNode(text.slice(last)));
+      node.replaceWith(frag);
+    }
+    if(changed) host.dataset.soParsed='1';
+  });
+}
+function bind(){ renderRawOmens(); document.querySelectorAll('.scene-omens').forEach(root=>{ if(settings().enabled) decorate(root); root.classList.toggle('so-disabled',!settings().enabled); }); }
 function applyEnabledState(){ document.documentElement.classList.toggle('scene-omens-off',!settings().enabled); syncPrompt(); bind(); }
 function observe(){ bind(); observer=new MutationObserver(()=>bind()); observer.observe(document.body,{childList:true,subtree:true}); }
 function testCards(){

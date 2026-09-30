@@ -11,7 +11,7 @@ Independent SillyTavern roleplay story director.
 - Frequency and maximum intensity controls.
 - Skip remains fully non-canonical.
 
-## Required Regex
+## Legacy Regex (optional)
 Search regex:
 ```
 \[OMEN\|([^|~\]]+)~([^|~\]]+)~([^|\]]+)\|([^|~\]]+)~([^|~\]]+)~([^|\]]+)\|([^|~\]]+)~([^|~\]]+)~([^|\]]+)\]
@@ -22,8 +22,13 @@ Replace with:
 <div class="scene-omens"><div class="so-head">✦ З Н А М Е Н И Я &nbsp; С Ц Е Н Ы ✦</div><div class="so-hint">между строками — выбери или пропусти</div><div class="so-row"><div class="so-card" data-omen="$1"><span class="so-omen-title">$1</span><span class="so-omen-hint">$2</span><span class="so-omen-thread">$3</span></div><div class="so-card" data-omen="$4"><span class="so-omen-title">$4</span><span class="so-omen-hint">$5</span><span class="so-omen-thread">$6</span></div><div class="so-card" data-omen="$7"><span class="so-omen-title">$7</span><span class="so-omen-hint">$8</span><span class="so-omen-thread">$9</span></div></div></div>
 ```
 
-The Director Brain prompt is injected by the extension while enabled, so the old standalone `[SCENE OMENS]` preset is no longer required. Keep the Regex enabled so the model tag becomes the card UI.
+The Director Brain prompt is injected by the extension while enabled, so the old standalone `[SCENE OMENS]` preset is no longer required. v0.3.2+ also parses the `[OMEN|...]` tag directly in the extension, so the Regex is now optional. Keeping an old Regex enabled is harmless, but it is no longer required for cards to appear.
 
 
 ## v0.3.1
 Compact drawer-based settings UI. Fate Engine logic and card/modal geometry are unchanged.
+
+
+## v0.3.2
+- Built-in OMEN tag parser: cards render even when the SillyTavern Regex is disabled or missing.
+- Existing Regex workflow remains compatible.
