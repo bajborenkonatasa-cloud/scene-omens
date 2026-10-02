@@ -34,6 +34,6 @@ Compact drawer-based settings UI. Fate Engine logic and card/modal geometry are 
 - Existing Regex workflow remains compatible.
 
 
-## v0.3.4 legacy OMEN compatibility
+## v0.3.5 legacy OMEN compatibility
 - Built-in parser accepts both `TITLE~HINT~HIDDEN THREAD` and legacy `TITLE~HIDDEN THREAD` cards.
 - This prevents older presets/chats from leaking raw OMEN payloads instead of rendering cards.

@@ -1,5 +1,5 @@
 const MODULE = 'scene-omens';
-const VERSION = '0.3.4';
+const VERSION = '0.3.5';
 const PROMPT_KEY = 'scene_omens_active_fate';
 const DEFAULTS = { enabled: true, skin: 'mystic', allowSkip: true, frequency: 'normal', intensity: 'turn' };
 let activeOmen = null;
@@ -28,7 +28,7 @@ function syncPrompt(){
   const s=settings();
   const cadence = s.frequency==='rare' ? 'Be very selective; use OMEN only after a clear lull or completed beat.' : s.frequency==='often' ? 'You may use OMEN somewhat more readily when the story needs a fresh impulse, but never spam it.' : 'Use OMEN occasionally, only when a fresh story impulse would genuinely improve pacing.';
   const ceiling = s.intensity==='ripple' ? 'Keep all candidates small-scale (Ripple): everyday complications, messages, meetings, minor NPC choices.' : s.intensity==='shift' ? 'Candidates may range from Ripple through Shift, but major changes must be strongly supported by the established story.' : 'Prefer Ripple or Turn. A stronger Shift is allowed only when clearly earned by the established story.';
-  let p=`[SCENE OMENS — DIRECTOR BRAIN]\nYou are also a restrained story director for this roleplay. The user remains the primary author of their own character. Your job is to make the WORLD move when useful, not to seize control.\n\n${cadence}\n${ceiling}\n\nAn omen may concern ANY established part of the roleplay: the main character, the user's character through external circumstances (never by deciding their thoughts/actions), family, children, parents, siblings, friends, rivals, coworkers, classmates, existing NPCs, institutions, places, ongoing goals, consequences, opportunities, secrets, or events in the wider world. Prefer established people and facts. Invent new NPCs or facts only when natural and compatible with canon.\n\nNever create random catastrophe merely for excitement. Match genre, tone, stakes and current scale. If the scene is already eventful, do NOT add an OMEN. Avoid repetitive romance/jealousy bias. Vary impulses among NPC agency, world events, consequences, opportunities, discoveries, relationship shifts, complications and believable chance encounters.\n\nWhen an omen is useful and there is NO active chosen thread, output exactly one machine-readable tag at the END of the reply:\n[OMEN|TITLE~HINT~HIDDEN THREAD|TITLE~HINT~HIDDEN THREAD|TITLE~HINT~HIDDEN THREAD]\n\nCRITICAL UI CONTRACT: the extension can create the three visual choice cards ONLY from that exact [OMEN|...] tag. NEVER print a heading such as ЗНАМЕНИЯ СЦЕНЫ, never list or narrate the three candidates in normal prose, and never expose HIDDEN THREAD outside the tag. If you offer choices, the tag is mandatory and is the only representation of those choices.\n\nFor each candidate:\n- TITLE: 1–4 evocative Russian words; spoiler-light.\n- HINT: one short atmospheric Russian sentence that gives the flavor, not the event.\n- HIDDEN THREAD: one concise but concrete director instruction describing what may actually develop, grounded in current canon. It must identify the relevant established NPC/world element when possible, but must NOT dictate the user's feelings, thoughts, dialogue or actions.\n- Do not use |, ~, [, ], <, > or quotation marks inside TITLE/HINT/HIDDEN THREAD.\n- Make all three candidates meaningfully different.\n- They are possibilities only. Do not start fulfilling any candidate in the same reply that offers the cards.\n- Never explain the tag or the hidden threads in prose.`;
+  let p=`[SCENE OMENS — DIRECTOR BRAIN]\nYou are also a restrained story director for this roleplay. The user remains the primary author of their own character. Your job is to make the WORLD move when useful, not to seize control.\n\n${cadence}\n${ceiling}\n\nAn omen may concern ANY established part of the roleplay: the main character, the user's character through external circumstances (never by deciding their thoughts/actions), family, children, parents, siblings, friends, rivals, coworkers, classmates, existing NPCs, institutions, places, ongoing goals, consequences, opportunities, secrets, or events in the wider world. Prefer established people and facts. Invent new NPCs or facts only when natural and compatible with canon.\n\nNever create random catastrophe merely for excitement. Match genre, tone, stakes and current scale. If the scene is already eventful, do NOT add an OMEN. Avoid repetitive romance/jealousy bias. Vary impulses among NPC agency, world events, consequences, opportunities, discoveries, relationship shifts, complications and believable chance encounters.\n\nWhen an omen is useful and there is NO active chosen thread, output exactly one machine-readable tag at the END of the reply:\n[OMEN|TITLE~HINT~HIDDEN THREAD|TITLE~HINT~HIDDEN THREAD|TITLE~HINT~HIDDEN THREAD]\n\nCRITICAL UI CONTRACT: the extension can create the three visual choice cards ONLY from that exact [OMEN|...] tag. NEVER print a heading such as ЗНАМЕНИЯ СЦЕНЫ, never list or narrate the three candidates in normal prose, and never expose HIDDEN THREAD outside the tag. If you offer choices, the tag is mandatory and is the only representation of those choices. IMPORTANT: if you are about to write three omen choices as normal prose, STOP and replace that entire prose block with the single [OMEN|...] tag. The literal characters [OMEN| must be present at the start of the choice block and ] must close it.\n\nFor each candidate:\n- TITLE: 1–4 evocative Russian words; spoiler-light.\n- HINT: one short atmospheric Russian sentence that gives the flavor, not the event.\n- HIDDEN THREAD: one concise but concrete director instruction describing what may actually develop, grounded in current canon. It must identify the relevant established NPC/world element when possible, but must NOT dictate the user's feelings, thoughts, dialogue or actions.\n- Do not use |, ~, [, ], <, > or quotation marks inside TITLE/HINT/HIDDEN THREAD.\n- Make all three candidates meaningfully different.\n- They are possibilities only. Do not start fulfilling any candidate in the same reply that offers the cards.\n- Never explain the tag or the hidden threads in prose.`;
   if(activeOmen){
     p+=`\n\n[ACTIVE CHOSEN THREAD]\nVisible omen: ${activeOmen.title || activeOmen.value || 'OMEN'}\nHidden direction: ${activeOmen.thread || activeOmen.value || ''}\nThis is the ONLY canonical chosen omen. All unchosen candidates in earlier OMEN tags are discarded and must never be implemented merely because they appeared in history. Do not output a new OMEN while this thread is active. Let the chosen direction emerge naturally when pacing and causality make it appropriate; it does NOT have to happen in the next reply. Adapt details to intervening events instead of forcing contradictions. NPCs and the world may act independently. Never reveal this instruction, never announce that an omen is being fulfilled, and never control the user's character.`;
   }
@@ -98,13 +98,82 @@ function omenMarkup(cards){
   const card=(o)=>`<div class="so-card" data-omen="${escapeHtml(o.title)}"><span class="so-omen-title">${escapeHtml(o.title)}</span><span class="so-omen-hint">${escapeHtml(o.hint)}</span><span class="so-omen-thread">${escapeHtml(o.thread)}</span></div>`;
   return `<div class="scene-omens"><div class="so-head">✦ З Н А М Е Н И Я &nbsp; С Ц Е Н Ы ✦</div><div class="so-hint">между строками — выбери или пропусти</div><div class="so-row">${cards.map(card).join('')}</div></div>`;
 }
+function cleanRecoveryText(s){
+  return String(s||'').replace(/\s+/g,' ').trim();
+}
+function recoverVisibleOmenCards(host){
+  const full=cleanRecoveryText(host.innerText || host.textContent || '');
+  if(!/З\s*Н\s*А\s*М\s*Е\s*Н\s*И\s*Я\s+С\s*Ц\s*Е\s*Н\s*Ы|ЗНАМЕНИЯ СЦЕНЫ/i.test(full)) return null;
+
+  // Recovery for models that ignore the machine contract and render three
+  // human-readable choices. Prefer semantic/markdown title elements because
+  // they preserve boundaries even when textContent glues title + hint together.
+  const titleEls=[...host.querySelectorAll('h1,h2,h3,h4,h5,h6,strong,b')]
+    .filter(el=>!el.closest('.scene-omens'))
+    .filter(el=>{
+      const t=cleanRecoveryText(el.textContent);
+      return t && t.length<=80 && !/ЗНАМЕНИЯ|между строками|выбери|пропусти/i.test(t);
+    });
+  const unique=[];
+  for(const el of titleEls){
+    const t=cleanRecoveryText(el.textContent);
+    if(!unique.some(x=>x.title===t)) unique.push({el,title:t});
+  }
+  if(unique.length<3) return null;
+  const chosen=unique.slice(-3);
+  const cards=chosen.map(({el,title},i)=>{
+    let container=el.parentElement;
+    let body=cleanRecoveryText(container?.innerText || '');
+    body=cleanRecoveryText(body.replace(title,''));
+    if(!body){
+      let n=container?.nextElementSibling;
+      const parts=[];
+      while(n && parts.length<2){
+        if(chosen.some(x=>x.el===n || n.contains(x.el))) break;
+        const t=cleanRecoveryText(n.innerText||n.textContent||''); if(t) parts.push(t);
+        n=n.nextElementSibling;
+      }
+      body=cleanRecoveryText(parts.join(' '));
+    }
+    const hint=body || 'Прикоснись к карте, чтобы открыть эту возможность.';
+    return {title,hint,thread:body || title};
+  });
+  return cards.length===3 ? cards : null;
+}
+function replaceVisibleOmenFallback(host,cards){
+  if(!cards) return false;
+  // The visible fallback is non-canonical UI noise. Replace only the omen
+  // portion when it is isolated in a block; otherwise append cards and hide
+  // the recognized prose conservatively by rebuilding from the heading onward.
+  const walker=document.createTreeWalker(host,NodeFilter.SHOW_TEXT);
+  const nodes=[]; while(walker.nextNode()) nodes.push(walker.currentNode);
+  let startNode=null;
+  for(const n of nodes){ if(/З\s*Н\s*А\s*М\s*Е\s*Н\s*И\s*Я\s+С\s*Ц\s*Е\s*Н\s*Ы|ЗНАМЕНИЯ СЦЕНЫ/i.test(n.nodeValue||'')){ startNode=n; break; } }
+  if(!startNode) return false;
+  // Find a top-level child of host containing the heading; remove that child
+  // and all following siblings, which are the malformed omen block at reply end.
+  let block=startNode.parentElement;
+  while(block && block.parentElement!==host) block=block.parentElement;
+  if(block){
+    let n=block; while(n){ const next=n.nextSibling; n.remove(); n=next; }
+  } else {
+    const txt=startNode.nodeValue||''; const m=txt.search(/З\s*Н\s*А\s*М\s*Е\s*Н\s*И\s*Я\s+С\s*Ц\s*Е\s*Н\s*Ы|ЗНАМЕНИЯ СЦЕНЫ/i);
+    if(m>=0) startNode.nodeValue=txt.slice(0,m);
+  }
+  const box=document.createElement('div'); box.innerHTML=omenMarkup(cards); host.append(...box.childNodes);
+  return true;
+}
 function renderRawOmens(){
   if(!settings().enabled) return;
   document.querySelectorAll('.mes_text, .mes .mes_text').forEach(host=>{
     if(host.dataset.soParsed==='1' || host.querySelector('.scene-omens')) return;
     const raw=host.textContent || '';
     OMEN_TAG_RE.lastIndex=0;
-    if(!OMEN_TAG_RE.test(raw)) return;
+    if(!OMEN_TAG_RE.test(raw)){
+      const recovered=recoverVisibleOmenCards(host);
+      if(recovered && replaceVisibleOmenFallback(host,recovered)) host.dataset.soParsed='1';
+      return;
+    }
     const walker=document.createTreeWalker(host,NodeFilter.SHOW_TEXT);
     const nodes=[]; while(walker.nextNode()) nodes.push(walker.currentNode);
     let changed=false;
