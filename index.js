@@ -1,5 +1,5 @@
 const MODULE = 'scene-omens';
-const VERSION = '0.3.3';
+const VERSION = '0.3.4';
 const PROMPT_KEY = 'scene_omens_active_fate';
 const DEFAULTS = { enabled: true, skin: 'mystic', allowSkip: true, frequency: 'normal', intensity: 'turn' };
 let activeOmen = null;
@@ -75,35 +75,55 @@ function decorate(root){
     root.appendChild(skip);
   }
 }
-const OMEN_RE = /\[OMEN\|([^|~\]]+)~([^|~\]]+)~([^|\]]+)\|([^|~\]]+)~([^|~\]]+)~([^|\]]+)\|([^|~\]]+)~([^|~\]]+)~([^|\]]+)\]/g;
-function omenMarkup(m){
-  const v=m.slice(1,10).map(x=>String(x||'').trim());
-  const card=(i)=>`<div class="so-card" data-omen="${escapeHtml(v[i])}"><span class="so-omen-title">${escapeHtml(v[i])}</span><span class="so-omen-hint">${escapeHtml(v[i+1])}</span><span class="so-omen-thread">${escapeHtml(v[i+2])}</span></div>`;
-  return `<div class="scene-omens"><div class="so-head">✦ З Н А М Е Н И Я &nbsp; С Ц Е Н Ы ✦</div><div class="so-hint">между строками — выбери или пропусти</div><div class="so-row">${card(0)}${card(3)}${card(6)}</div></div>`;
+const OMEN_TAG_RE = /\[OMEN\|([^\]]+)\]/g;
+function parseOmenTag(full){
+  const inner=String(full||'').replace(/^\[OMEN\|/,'').replace(/\]$/,'');
+  const groups=inner.split('|').map(x=>x.trim()).filter(Boolean);
+  if(groups.length!==3) return null;
+  const cards=[];
+  for(const group of groups){
+    const bits=group.split('~').map(x=>x.trim());
+    if(bits.length<2) return null;
+    const title=bits.shift();
+    // v0.3.4 accepts both the current TITLE~HINT~THREAD contract and the
+    // older TITLE~THREAD contract still emitted by some presets/chats.
+    const thread=bits.length>1 ? bits.slice(1).join(' ~ ') : bits[0];
+    const hint=bits.length>1 ? bits[0] : 'Прикоснись к карте, чтобы открыть эту возможность.';
+    if(!title || !thread) return null;
+    cards.push({title,hint,thread});
+  }
+  return cards;
+}
+function omenMarkup(cards){
+  const card=(o)=>`<div class="so-card" data-omen="${escapeHtml(o.title)}"><span class="so-omen-title">${escapeHtml(o.title)}</span><span class="so-omen-hint">${escapeHtml(o.hint)}</span><span class="so-omen-thread">${escapeHtml(o.thread)}</span></div>`;
+  return `<div class="scene-omens"><div class="so-head">✦ З Н А М Е Н И Я &nbsp; С Ц Е Н Ы ✦</div><div class="so-hint">между строками — выбери или пропусти</div><div class="so-row">${cards.map(card).join('')}</div></div>`;
 }
 function renderRawOmens(){
   if(!settings().enabled) return;
   document.querySelectorAll('.mes_text, .mes .mes_text').forEach(host=>{
     if(host.dataset.soParsed==='1' || host.querySelector('.scene-omens')) return;
     const raw=host.textContent || '';
-    OMEN_RE.lastIndex=0;
-    if(!OMEN_RE.test(raw)) return;
-    OMEN_RE.lastIndex=0;
+    OMEN_TAG_RE.lastIndex=0;
+    if(!OMEN_TAG_RE.test(raw)) return;
     const walker=document.createTreeWalker(host,NodeFilter.SHOW_TEXT);
     const nodes=[]; while(walker.nextNode()) nodes.push(walker.currentNode);
     let changed=false;
     for(const node of nodes){
-      const text=node.nodeValue||''; OMEN_RE.lastIndex=0;
-      if(!OMEN_RE.test(text)) continue;
-      OMEN_RE.lastIndex=0;
+      const text=node.nodeValue||''; OMEN_TAG_RE.lastIndex=0;
+      if(!OMEN_TAG_RE.test(text)) continue;
+      OMEN_TAG_RE.lastIndex=0;
       const frag=document.createDocumentFragment(); let last=0, match;
-      while((match=OMEN_RE.exec(text))){
+      while((match=OMEN_TAG_RE.exec(text))){
+        const cards=parseOmenTag(match[0]);
+        if(!cards) continue;
         if(match.index>last) frag.append(document.createTextNode(text.slice(last,match.index)));
-        const box=document.createElement('div'); box.innerHTML=omenMarkup(match); frag.append(...box.childNodes);
+        const box=document.createElement('div'); box.innerHTML=omenMarkup(cards); frag.append(...box.childNodes);
         last=match.index+match[0].length; changed=true;
       }
-      if(last<text.length) frag.append(document.createTextNode(text.slice(last)));
-      node.replaceWith(frag);
+      if(changed){
+        if(last<text.length) frag.append(document.createTextNode(text.slice(last)));
+        node.replaceWith(frag);
+      }
     }
     if(changed) host.dataset.soParsed='1';
   });
