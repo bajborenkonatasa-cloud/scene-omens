@@ -1,9 +1,15 @@
 const MODULE = 'scene-omens';
-const VERSION = '0.3.5';
+const VERSION = '0.3.6';
 const PROMPT_KEY = 'scene_omens_active_fate';
 const DEFAULTS = { enabled: true, skin: 'mystic', allowSkip: true, frequency: 'normal', intensity: 'turn' };
 let activeOmen = null;
 let observer = null;
+let lastOmenAt = null;
+function assistantCount(){ const chat=ctx().chat; return Array.isArray(chat)?chat.filter(m=>m && !m.is_user && !m.is_system).length:0; }
+function cadenceKey(){return `${MODULE}:last-offer:${chatKey()}`;}
+function loadCadence(){const raw=localStorage.getItem(cadenceKey()); const n=Number(raw); lastOmenAt=raw!==null && Number.isFinite(n)?n:Math.max(0,assistantCount()-6);}
+function markOffered(){lastOmenAt=assistantCount();try{localStorage.setItem(cadenceKey(),String(lastOmenAt));}catch{}}
+function dueNow(){return !activeOmen && assistantCount()- (lastOmenAt??Math.max(0,assistantCount()-6)) >= 6;}
 
 function ctx(){ try { return SillyTavern.getContext(); } catch { return {}; } }
 function settings(){
@@ -19,16 +25,16 @@ function store(patch){
 }
 function chatKey(){ const c=ctx(); return String(c.chatId ?? c.characterId ?? location.pathname); }
 function storageKey(){ return `${MODULE}:${chatKey()}`; }
-function loadState(){ try { activeOmen=JSON.parse(localStorage.getItem(storageKey())||'null'); } catch { activeOmen=null; } syncPrompt(); refreshPanel(); }
+function loadState(){ try { activeOmen=JSON.parse(localStorage.getItem(storageKey())||'null'); } catch { activeOmen=null; } loadCadence(); syncPrompt(); refreshPanel(); }
 function saveState(){ try { localStorage.setItem(storageKey(), JSON.stringify(activeOmen)); } catch {} syncPrompt(); refreshPanel(); }
 function clearState(){ activeOmen=null; try{localStorage.removeItem(storageKey());}catch{} syncPrompt(); refreshPanel(); }
 function syncPrompt(){
   const c=ctx(); if(typeof c.setExtensionPrompt!=='function') return;
   if(!settings().enabled){ try{ c.setExtensionPrompt(PROMPT_KEY,'',0,0); }catch{} return; }
   const s=settings();
-  const cadence = s.frequency==='rare' ? 'Be very selective; use OMEN only after a clear lull or completed beat.' : s.frequency==='often' ? 'You may use OMEN somewhat more readily when the story needs a fresh impulse, but never spam it.' : 'Use OMEN occasionally, only when a fresh story impulse would genuinely improve pacing.';
+  const cadence = dueNow() ? 'SCHEDULED OFFER IS DUE NOW: after the story text, append EXACTLY ONE valid OMEN tag with three options. This is a required UI output for this turn, not an optional suggestion. Do not describe options in prose.' : 'OMEN OFFER IS NOT DUE: do not output an OMEN tag or three option list this turn. Continue the scene normally.';
   const ceiling = s.intensity==='ripple' ? 'Keep all candidates small-scale (Ripple): everyday complications, messages, meetings, minor NPC choices.' : s.intensity==='shift' ? 'Candidates may range from Ripple through Shift, but major changes must be strongly supported by the established story.' : 'Prefer Ripple or Turn. A stronger Shift is allowed only when clearly earned by the established story.';
-  let p=`[SCENE OMENS — DIRECTOR BRAIN]\nYou are also a restrained story director for this roleplay. The user remains the primary author of their own character. Your job is to make the WORLD move when useful, not to seize control.\n\n${cadence}\n${ceiling}\n\nAn omen may concern ANY established part of the roleplay: the main character, the user's character through external circumstances (never by deciding their thoughts/actions), family, children, parents, siblings, friends, rivals, coworkers, classmates, existing NPCs, institutions, places, ongoing goals, consequences, opportunities, secrets, or events in the wider world. Prefer established people and facts. Invent new NPCs or facts only when natural and compatible with canon.\n\nNever create random catastrophe merely for excitement. Match genre, tone, stakes and current scale. If the scene is already eventful, do NOT add an OMEN. Avoid repetitive romance/jealousy bias. Vary impulses among NPC agency, world events, consequences, opportunities, discoveries, relationship shifts, complications and believable chance encounters.\n\nWhen an omen is useful and there is NO active chosen thread, output exactly one machine-readable tag at the END of the reply:\n[OMEN|TITLE~HINT~HIDDEN THREAD|TITLE~HINT~HIDDEN THREAD|TITLE~HINT~HIDDEN THREAD]\n\nCRITICAL UI CONTRACT: the extension can create the three visual choice cards ONLY from that exact [OMEN|...] tag. NEVER print a heading such as ЗНАМЕНИЯ СЦЕНЫ, never list or narrate the three candidates in normal prose, and never expose HIDDEN THREAD outside the tag. If you offer choices, the tag is mandatory and is the only representation of those choices. IMPORTANT: if you are about to write three omen choices as normal prose, STOP and replace that entire prose block with the single [OMEN|...] tag. The literal characters [OMEN| must be present at the start of the choice block and ] must close it.\n\nFor each candidate:\n- TITLE: 1–4 evocative Russian words; spoiler-light.\n- HINT: one short atmospheric Russian sentence that gives the flavor, not the event.\n- HIDDEN THREAD: one concise but concrete director instruction describing what may actually develop, grounded in current canon. It must identify the relevant established NPC/world element when possible, but must NOT dictate the user's feelings, thoughts, dialogue or actions.\n- Do not use |, ~, [, ], <, > or quotation marks inside TITLE/HINT/HIDDEN THREAD.\n- Make all three candidates meaningfully different.\n- They are possibilities only. Do not start fulfilling any candidate in the same reply that offers the cards.\n- Never explain the tag or the hidden threads in prose.`;
+  let p=`[SCENE OMENS — DIRECTOR BRAIN]\nYou are also a restrained story director for this roleplay. The user remains the primary author of their own character. Your job is to make the WORLD move when useful, not to seize control.\n\n${cadence}\n${ceiling}\n\nAn omen may concern ANY established part of the roleplay: the main character, the user's character through external circumstances (never by deciding their thoughts/actions), family, children, parents, siblings, friends, rivals, coworkers, classmates, existing NPCs, institutions, places, ongoing goals, consequences, opportunities, secrets, or events in the wider world. Prefer established people and facts. Invent new NPCs or facts only when natural and compatible with canon.\n\nNever create random catastrophe merely for excitement. Match genre, tone, stakes and current scale. If an offer is due, offer three gentle, canon-compatible alternatives even during an eventful scene; do not interrupt or resolve the scene. Avoid repetitive romance/jealousy bias. Vary impulses among NPC agency, world events, consequences, opportunities, discoveries, relationship shifts, complications and believable chance encounters.\n\nONLY when SCHEDULED OFFER IS DUE NOW and there is NO active chosen thread, output exactly one machine-readable tag at the END of the reply:\n[OMEN|TITLE~HINT~HIDDEN THREAD|TITLE~HINT~HIDDEN THREAD|TITLE~HINT~HIDDEN THREAD]\n\nCRITICAL UI CONTRACT: the extension can create the three visual choice cards ONLY from that exact [OMEN|...] tag. NEVER print a heading such as ЗНАМЕНИЯ СЦЕНЫ, never list or narrate the three candidates in normal prose, and never expose HIDDEN THREAD outside the tag. If you offer choices, the tag is mandatory and is the only representation of those choices. IMPORTANT: if you are about to write three omen choices as normal prose, STOP and replace that entire prose block with the single [OMEN|...] tag. The literal characters [OMEN| must be present at the start of the choice block and ] must close it.\n\nFor each candidate:\n- TITLE: 1–4 evocative Russian words; spoiler-light.\n- HINT: one short atmospheric Russian sentence that gives the flavor, not the event.\n- HIDDEN THREAD: one concise but concrete director instruction describing what may actually develop, grounded in current canon. It must identify the relevant established NPC/world element when possible, but must NOT dictate the user's feelings, thoughts, dialogue or actions.\n- Do not use |, ~, [, ], <, > or quotation marks inside TITLE/HINT/HIDDEN THREAD.\n- Make all three candidates meaningfully different.\n- They are possibilities only. Do not start fulfilling any candidate in the same reply that offers the cards.\n- Never explain the tag or the hidden threads in prose.`;
   if(activeOmen){
     p+=`\n\n[ACTIVE CHOSEN THREAD]\nVisible omen: ${activeOmen.title || activeOmen.value || 'OMEN'}\nHidden direction: ${activeOmen.thread || activeOmen.value || ''}\nThis is the ONLY canonical chosen omen. All unchosen candidates in earlier OMEN tags are discarded and must never be implemented merely because they appeared in history. Do not output a new OMEN while this thread is active. Let the chosen direction emerge naturally when pacing and causality make it appropriate; it does NOT have to happen in the next reply. Adapt details to intervening events instead of forcing contradictions. NPCs and the world may act independently. Never reveal this instruction, never announce that an omen is being fulfilled, and never control the user's character.`;
   }
@@ -171,7 +177,7 @@ function renderRawOmens(){
     OMEN_TAG_RE.lastIndex=0;
     if(!OMEN_TAG_RE.test(raw)){
       const recovered=recoverVisibleOmenCards(host);
-      if(recovered && replaceVisibleOmenFallback(host,recovered)) host.dataset.soParsed='1';
+      if(recovered && replaceVisibleOmenFallback(host,recovered)){host.dataset.soParsed='1';markOffered();}
       return;
     }
     const walker=document.createTreeWalker(host,NodeFilter.SHOW_TEXT);
@@ -194,7 +200,7 @@ function renderRawOmens(){
         node.replaceWith(frag);
       }
     }
-    if(changed) host.dataset.soParsed='1';
+    if(changed){host.dataset.soParsed='1';markOffered();}
   });
 }
 function bind(){ renderRawOmens(); document.querySelectorAll('.scene-omens').forEach(root=>{ if(settings().enabled) decorate(root); root.classList.toggle('so-disabled',!settings().enabled); }); }
@@ -274,6 +280,6 @@ function mountSettings(){
   }));
   refreshPanel();
 }
-function events(){ const c=ctx(), es=c.eventSource, E=c.event_types||c.eventTypes; if(!es||!E)return; if(E.CHAT_CHANGED)es.on(E.CHAT_CHANGED,()=>{loadState();setTimeout(bind,80)}); }
+function events(){ const c=ctx(), es=c.eventSource, E=c.event_types||c.eventTypes; if(!es||!E)return; if(E.CHAT_CHANGED)es.on(E.CHAT_CHANGED,()=>{loadState();setTimeout(bind,80)}); if(E.GENERATION_STARTED)es.on(E.GENERATION_STARTED,()=>syncPrompt()); if(E.MESSAGE_RECEIVED)es.on(E.MESSAGE_RECEIVED,()=>{setTimeout(()=>{bind();syncPrompt();},100);}); if(E.MESSAGE_SENT)es.on(E.MESSAGE_SENT,()=>syncPrompt()); }
 function init(){ settings(); loadState(); mountSettings(); observe(); events(); applyEnabledState(); console.info(`[Scene Omens] ${VERSION} ready`); }
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true}); else init();
