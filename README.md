@@ -37,3 +37,7 @@ Compact drawer-based settings UI. Fate Engine logic and card/modal geometry are 
 ## v0.3.5 legacy OMEN compatibility
 - Built-in parser accepts both `TITLE~HINT~HIDDEN THREAD` and legacy `TITLE~HIDDEN THREAD` cards.
 - This prevents older presets/chats from leaking raw OMEN payloads instead of rendering cards.
+
+### v0.3.7 — remembered card choices
+
+Chosen and skipped card offers are remembered per chat and offer, so returning to a chat does not resurrect previously dismissed cards. Existing active choices also suppress old card offers. Test cards are excluded from persistent tracking.

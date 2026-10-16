@@ -1,5 +1,5 @@
 const MODULE = 'scene-omens';
-const VERSION = '0.3.6';
+const VERSION = '0.3.7';
 const PROMPT_KEY = 'scene_omens_active_fate';
 const DEFAULTS = { enabled: true, skin: 'mystic', allowSkip: true, frequency: 'normal', intensity: 'turn' };
 let activeOmen = null;
@@ -25,6 +25,27 @@ function store(patch){
 }
 function chatKey(){ const c=ctx(); return String(c.chatId ?? c.characterId ?? location.pathname); }
 function storageKey(){ return `${MODULE}:${chatKey()}`; }
+// Remember consumed offers independently from the active story thread.
+function resolvedKey(){return `${MODULE}:resolved-offers:${chatKey()}`;}
+function offerId(root){
+  const host=root.closest('.mes');
+  const messageId=host?.getAttribute('mesid') ?? host?.dataset?.mesid ?? '';
+  const values=[...root.querySelectorAll('.so-card')].map(c=>[
+    c.querySelector('.so-omen-title')?.textContent||'',
+    c.querySelector('.so-omen-thread')?.textContent||''
+  ].join('~')).join('|');
+  return `${messageId}:${hash(values)}`;
+}
+function resolvedOffers(){
+  try {const v=JSON.parse(localStorage.getItem(resolvedKey())||'[]');return Array.isArray(v)?v:[];}
+  catch{return [];}
+}
+function rememberResolved(root){
+  if(root.id==='so-test-host')return;
+  const id=offerId(root), all=resolvedOffers();
+  if(!all.includes(id)){all.push(id);try{localStorage.setItem(resolvedKey(),JSON.stringify(all.slice(-500)));}catch{}}
+}
+function isResolved(root){return root.id!=='so-test-host' && (resolvedOffers().includes(offerId(root)) || Boolean(activeOmen));}
 function loadState(){ try { activeOmen=JSON.parse(localStorage.getItem(storageKey())||'null'); } catch { activeOmen=null; } loadCadence(); syncPrompt(); refreshPanel(); }
 function saveState(){ try { localStorage.setItem(storageKey(), JSON.stringify(activeOmen)); } catch {} syncPrompt(); refreshPanel(); }
 function clearState(){ activeOmen=null; try{localStorage.removeItem(storageKey());}catch{} syncPrompt(); refreshPanel(); }
@@ -56,6 +77,7 @@ function reveal(value, card, root){
   const thread=(card.querySelector('.so-omen-thread')?.textContent || value || title).trim();
   if(!settings().enabled || root.dataset.chosen==='1') return;
   root.dataset.chosen='1';
+  rememberResolved(root);
   root.querySelectorAll('.so-card').forEach(c=>{ if(c!==card)c.classList.add('so-faded'); });
   card.classList.add('so-picked');
   const isTest = root?.id === 'so-test-host';
@@ -70,6 +92,7 @@ function reveal(value, card, root){
   overlay.addEventListener('cancel',(e)=>{e.preventDefault();closeReveal();},{once:true});
 }
 function decorate(root){
+  if(isResolved(root)){root.dataset.chosen='1';root.classList.add('so-resolved');root.style.display='none';return;}
   if(root.dataset.soReady==='1') return;
   root.dataset.soReady='1'; root.classList.add('so-mounted');
   let row=root.querySelector('.so-row');
@@ -77,7 +100,7 @@ function decorate(root){
   root.querySelectorAll('.so-card').forEach(card=>card.addEventListener('click',(e)=>{e.preventDefault();e.stopPropagation();reveal((card.dataset.omen||'').trim(),card,root);}));
   if(settings().allowSkip && !root.querySelector('.so-skip')){
     const skip=document.createElement('button'); skip.type='button'; skip.className='so-skip'; skip.textContent='Пропустить знамение';
-    skip.addEventListener('click',(e)=>{e.preventDefault();e.stopPropagation();root.dataset.chosen='1';dismissRoot(root);});
+    skip.addEventListener('click',(e)=>{e.preventDefault();e.stopPropagation();root.dataset.chosen='1';rememberResolved(root);dismissRoot(root);});
     root.appendChild(skip);
   }
 }
