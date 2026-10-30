@@ -1,15 +1,35 @@
 const MODULE = 'scene-omens';
-const VERSION = '0.3.7';
+const VERSION = '0.3.8';
 const PROMPT_KEY = 'scene_omens_active_fate';
 const DEFAULTS = { enabled: true, skin: 'mystic', allowSkip: true, frequency: 'normal', intensity: 'turn' };
 let activeOmen = null;
 let observer = null;
 let lastOmenAt = null;
+// A new offer is scheduled every 12 assistant replies in this chat.
+const OFFER_INTERVAL = 12;
 function assistantCount(){ const chat=ctx().chat; return Array.isArray(chat)?chat.filter(m=>m && !m.is_user && !m.is_system).length:0; }
 function cadenceKey(){return `${MODULE}:last-offer:${chatKey()}`;}
-function loadCadence(){const raw=localStorage.getItem(cadenceKey()); const n=Number(raw); lastOmenAt=raw!==null && Number.isFinite(n)?n:Math.max(0,assistantCount()-6);}
-function markOffered(){lastOmenAt=assistantCount();try{localStorage.setItem(cadenceKey(),String(lastOmenAt));}catch{}}
-function dueNow(){return !activeOmen && assistantCount()- (lastOmenAt??Math.max(0,assistantCount()-6)) >= 6;}
+function loadCadence(){
+  const raw=localStorage.getItem(cadenceKey());
+  const n=Number(raw);
+  // Existing chats without a stored offer start on the next 12-reply boundary.
+  lastOmenAt=raw!==null && Number.isFinite(n) && n>=0 ? n : Math.floor(Math.max(0,assistantCount()-1)/OFFER_INTERVAL)*OFFER_INTERVAL;
+}
+function markOffered(){
+  lastOmenAt=assistantCount();
+  try{localStorage.setItem(cadenceKey(),String(lastOmenAt));}catch{}
+  syncPrompt();
+}
+function retireExpiredThread(){
+  if(!activeOmen || assistantCount()-(lastOmenAt??0)<OFFER_INTERVAL) return;
+  activeOmen=null;
+  try{localStorage.removeItem(storageKey());}catch{}
+  refreshPanel();
+}
+function dueNow(){
+  retireExpiredThread();
+  return !activeOmen && assistantCount()-(lastOmenAt??0)>=OFFER_INTERVAL;
+}
 
 function ctx(){ try { return SillyTavern.getContext(); } catch { return {}; } }
 function settings(){
@@ -50,6 +70,7 @@ function loadState(){ try { activeOmen=JSON.parse(localStorage.getItem(storageKe
 function saveState(){ try { localStorage.setItem(storageKey(), JSON.stringify(activeOmen)); } catch {} syncPrompt(); refreshPanel(); }
 function clearState(){ activeOmen=null; try{localStorage.removeItem(storageKey());}catch{} syncPrompt(); refreshPanel(); }
 function syncPrompt(){
+  retireExpiredThread();
   const c=ctx(); if(typeof c.setExtensionPrompt!=='function') return;
   if(!settings().enabled){ try{ c.setExtensionPrompt(PROMPT_KEY,'',0,0); }catch{} return; }
   const s=settings();
